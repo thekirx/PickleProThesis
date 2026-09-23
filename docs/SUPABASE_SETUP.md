@@ -1,10 +1,19 @@
 # Supabase test-project setup and verification
 
-The hosted workflow has **not yet been verified**. Use a dedicated disposable test project. The existing connected `HelloFinance` project is unrelated to PicklePro and must not receive these migrations.
+The hosted workflow was verified on September 24, 2026, with synthetic test material in the dedicated Free project `PickleProThesis-test` (`vyhpxmakeciwvknynshc`) in the new `Pickleball` organization, Singapore region (`ap-southeast-1`). The project is available in the [Supabase dashboard](https://supabase.com/dashboard/project/vyhpxmakeciwvknynshc). Use this project for further PicklePro tests; do not apply these migrations to an unrelated project.
+
+## Hosted verification record
+
+- Both migrations in `supabase/migrations/` were applied to the new project, and the local and remote migration histories matched. Linked database lint reported no schema errors.
+- Two synthetic test accounts were used. In the browser, account A created a session, uploaded a synthetic H.264 clip through the resumable upload client to private Storage, saw the fixture worker complete a job, and recovered the result after a reload. The UI identified the fixture as **TEST DATA — NOT FROM YOUR VIDEO**.
+- Account A could read its session, video, job, result, and private video object. Account B could read none of A's records or video and could not finalize A's upload. Twenty simultaneous finalize calls for A's video returned the same single job.
+- The same uploaded clip was requeued and processed with the measured worker. It downloaded the private video, stored a measured heatmap and coverage, and the browser displayed **MEASURED FROM THIS VIDEO**. Private video playback loaded successfully.
+
+These checks used synthetic footage and programmatically created confirmed test accounts. Real footage accuracy, the normal email confirmation flow, an interrupted and resumed upload, and invalid-file/error cases remain unverified. Security and performance advisors were not run because the installed Supabase CLI did not expose that command and the connected Supabase account cannot access this project. Review those advisors in the project's dashboard before broader use.
 
 ## Prepare the test project
 
-1. Create a separate Supabase test project and record its project reference. Enable email/password sign-in. Set its site URL to the frontend origin you will use, such as `http://localhost:5173`.
+1. Use the dedicated test project above, or create another disposable Supabase project and record its reference. Enable email/password sign-in. Set its site URL to the frontend origin you will use, such as `http://localhost:5173`, and allow any other development origin you actually use in Auth redirect URLs. The hosted email confirmation redirect has not yet been tested on this project.
 2. From the repository root, inspect your installed CLI (`supabase --version`, `supabase link --help`, `supabase db push --help`), then sign in and link **the test project** with `supabase login` and `supabase link --project-ref <test-project-ref>`. Verify the selected reference before applying migrations.
 3. Preview pending migrations with `supabase db push --dry-run`, then apply them with `supabase db push`. The two files in `supabase/migrations/` create sessions, private video storage, jobs, results, policies, and worker functions. Do not use a remote database reset: it drops data.
 4. Check that the Data API is enabled for the project and that the migrated tables and functions are reachable with the intended roles. New Supabase projects no longer grant Data API access to new `public` tables automatically; these migrations include explicit grants for the required roles. RLS then limits which rows each signed-in user can access. See [the Supabase Data API change](https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically).
