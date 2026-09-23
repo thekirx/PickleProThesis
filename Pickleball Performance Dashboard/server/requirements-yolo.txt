@@ -1,0 +1,4 @@
+# OPTIONAL person detector. Read docs/ADVISER_DECISIONS.md first:
+# Ultralytics is licensed AGPL-3.0, and it pulls in PyTorch (large install).
+# Weights are NOT downloaded automatically; pass --yolo-weights /path/to/weights.pt.
+ultralytics>=8.3
