@@ -4,12 +4,13 @@
   "data_origin": "test_fixture",
   "message": "TEST DATA: produced from a synthetic clip by the worker's test_fixture mode. It is not an analysis of your video.",
   "provenance": {
-    "pipeline_version": "0.3.0-dev",
+    "pipeline_version": "0.4.0-dev",
     "generated_at": "2026-01-01T00:00:00+00:00",
     "detector": {
       "name": "opencv-mog2-motion",
       "confidence_is_model_score": false
     },
+    "ball_detector": null,
     "source": {
       "filename": "synthetic_fixture.mp4",
       "sha256": null
@@ -32,7 +33,8 @@
     "decode_failures": 0,
     "stopped_early_reason": null,
     "fraction_of_video_analyzed": 1.0,
-    "frames_with_detections": 146
+    "frames_with_detections": 146,
+    "frames_with_ball_detections": 0
   },
   "calibration": {
     "method": "manual_landmarks",
@@ -733,6 +735,7 @@
       ]
     }
   ],
+  "ball_positions": [],
   "metrics": {
     "court_heatmap": {
       "status": "measured",
@@ -1312,7 +1315,7 @@
       "status": "not_computed",
       "validation": "not_evaluated",
       "scope": "whole_clip",
-      "reason": "Shot classification requires ball tracking and a validated classifier; neither exists in this pipeline yet."
+      "reason": "Shot classification requires validated ball trajectories and a shot classifier; neither exists in this pipeline yet."
     }
   },
   "warnings": [

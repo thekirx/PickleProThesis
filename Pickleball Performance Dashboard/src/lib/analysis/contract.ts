@@ -9,7 +9,7 @@ export const VALIDATION_LEVELS = ["not_evaluated", "synthetic_only", "evaluated_
 export const METRIC_KEYS = ["court_heatmap", "zone_occupancy", "rally_segmentation", "shot_classification"] as const;
 export const RESULT_KEYS = [
   "schema_version", "status", "data_origin", "message", "provenance", "video", "coverage", "calibration",
-  "player_selection", "tracks", "player_positions", "metrics", "warnings",
+  "player_selection", "tracks", "player_positions", "ball_positions", "metrics", "warnings",
 ] as const;
 
 export type ResultStatus = (typeof RESULT_STATUSES)[number];
@@ -44,6 +44,7 @@ export type ZoneOccupancyValue = {
 
 export type PlayerBox = { track_id: number | null; bbox: [number, number, number, number]; confidence: number | null };
 export type PositionSnapshot = { time_seconds: number; players: PlayerBox[] };
+export type BallSnapshot = { time_seconds: number; bbox: [number, number, number, number]; confidence: number };
 
 export type AnalysisResultV1 = {
   schema_version: "1.0";
@@ -54,6 +55,7 @@ export type AnalysisResultV1 = {
     pipeline_version: string;
     generated_at: string;
     detector: { name: string; confidence_is_model_score: boolean };
+    ball_detector?: { name: string; confidence_is_model_score: boolean } | null;
     source: { filename: string | null; sha256: string | null };
   };
   video: {
@@ -74,6 +76,7 @@ export type AnalysisResultV1 = {
     stopped_early_reason: string | null;
     fraction_of_video_analyzed: number | null;
     frames_with_detections: number;
+    frames_with_ball_detections?: number;
   };
   calibration: {
     method: "manual_landmarks" | "auto_model_landmarks";
@@ -93,6 +96,7 @@ export type AnalysisResultV1 = {
   } | null;
   tracks: { track_id: number; first_seen_s: number; last_seen_s: number; observed_frames: number }[];
   player_positions: PositionSnapshot[];
+  ball_positions?: BallSnapshot[];
   metrics: {
     court_heatmap: Metric & { value: HeatmapValue | null };
     zone_occupancy: Metric & { value: ZoneOccupancyValue | null };
@@ -134,10 +138,14 @@ export function parseAnalysisResult(input: unknown): AnalysisResultV1 {
   if (!isObj(prov) || typeof prov.pipeline_version !== "string" || !isObj(prov.detector)) {
     throw new ContractError("provenance: missing pipeline_version or detector");
   }
+  if (prov.ball_detector != null && (!isObj(prov.ball_detector) || typeof prov.ball_detector.name !== "string")) {
+    throw new ContractError("provenance.ball_detector: expected a detector or null");
+  }
   const cov = input.coverage;
   if (!isObj(cov)) throw new ContractError("coverage: expected an object");
   num(cov.analyzed_duration_s, "coverage.analyzed_duration_s");
   num(cov.frames_analyzed, "coverage.frames_analyzed");
+  if (cov.frames_with_ball_detections !== undefined) num(cov.frames_with_ball_detections, "coverage.frames_with_ball_detections");
   if (input.calibration !== null) {
     if (!isObj(input.calibration)) throw new ContractError("calibration: expected an object or null");
     oneOf(input.calibration.method, ["manual_landmarks", "auto_model_landmarks"] as const, "calibration.method");
@@ -155,6 +163,19 @@ export function parseAnalysisResult(input: unknown): AnalysisResultV1 {
   }
   if (!Array.isArray(input.player_positions) || !Array.isArray(input.tracks) || !Array.isArray(input.warnings)) {
     throw new ContractError("player_positions/tracks/warnings: expected arrays");
+  }
+  if (input.ball_positions !== undefined && !Array.isArray(input.ball_positions)) {
+    throw new ContractError("ball_positions: expected an array");
+  }
+  if (Array.isArray(input.ball_positions)) {
+    for (const ball of input.ball_positions) {
+      if (!isObj(ball) || !Array.isArray(ball.bbox) || ball.bbox.length !== 4) {
+        throw new ContractError("ball_positions: invalid ball box");
+      }
+      num(ball.time_seconds, "ball_positions.time_seconds");
+      num(ball.confidence, "ball_positions.confidence");
+      ball.bbox.forEach((value) => num(value, "ball_positions.bbox"));
+    }
   }
   return input as unknown as AnalysisResultV1;
 }

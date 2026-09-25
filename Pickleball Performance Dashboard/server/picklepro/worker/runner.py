@@ -61,6 +61,7 @@ class WorkerConfig:
     detector: str = "motion"
     yolo_weights: Optional[str] = None
     court_weights: Optional[str] = None
+    ball_weights: Optional[str] = None
     target_fps: float = 10.0
 
 
@@ -80,7 +81,8 @@ def options_from_params(params: dict, cfg: WorkerConfig, filename: Optional[str]
     if selection is None:
         selection = Selection("court_half", court_half="near")
     return AnalysisOptions(detector=cfg.detector, yolo_weights=cfg.yolo_weights,
-                           court_weights=cfg.court_weights, target_fps=cfg.target_fps,
+                           court_weights=cfg.court_weights, ball_weights=cfg.ball_weights,
+                           target_fps=cfg.target_fps,
                            calibration=calibration, selection=selection,
                            experimental_zones=bool(params.get("experimental_zones")), source_filename=filename)
 

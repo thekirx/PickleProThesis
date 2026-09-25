@@ -80,7 +80,7 @@ export function ResultView({ result, videoUrl }: { result: AnalysisResultV1; vid
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="space-y-4">
-          <VideoOverlayPlayer src={videoUrl} positions={result.player_positions}
+          <VideoOverlayPlayer src={videoUrl} positions={result.player_positions} ballPositions={result.ball_positions ?? []}
             selectedTrackId={sel?.method === "track_id" ? sel.track_id : null} />
 
           <Card>
@@ -137,12 +137,14 @@ export function ResultView({ result, videoUrl }: { result: AnalysisResultV1; vid
             <Row k="Origin" v={result.data_origin === "test_fixture" ? "test fixture" : "measured"} />
             <Row k="Pipeline version" v={result.provenance.pipeline_version} />
             <Row k="Detector" v={result.provenance.detector.name} />
+            <Row k="Ball detector" v={result.provenance.ball_detector?.name ?? "not configured"} />
             <Row k="Detection confidence" v={result.provenance.detector.confidence_is_model_score ? "model score" : "not available"} />
             <Row k="Video length" v={fmtS(result.video.container_duration_s)} />
             <Row k="Analyzed" v={`${fmtS(c.analyzed_start_s)} – ${fmtS(c.analyzed_end_s)}`} />
             <Row k="Share of video analyzed" v={pct(c.fraction_of_video_analyzed)} />
             <Row k="Frames analyzed" v={`${c.frames_analyzed} (every ${c.sample_stride}${c.sample_stride === 1 ? "" : "th"} frame)`} />
-            <Row k="Frames with detections" v={c.frames_with_detections} />
+            <Row k="Frames with player detections" v={c.frames_with_detections} />
+            <Row k="Frames with ball detections" v={c.frames_with_ball_detections ?? 0} />
             {c.decode_failures > 0 && <Row k="Undecodable frames" v={c.decode_failures} />}
             <Row k="Calibration" v={result.calibration
               ? `${result.calibration.method === "auto_model_landmarks" ? "automatic" : "manual"} · ${result.calibration.landmarks_used.length} landmarks · ${result.calibration.quality} (${result.calibration.reprojection_rmse_m.toFixed(2)} m)`

@@ -71,6 +71,7 @@ def _cmd_analyze(args) -> int:
 
     opts = AnalysisOptions(
         detector=args.detector, yolo_weights=args.yolo_weights, court_weights=args.court_weights,
+        ball_weights=args.ball_weights,
         target_fps=args.target_fps,
         max_seconds=args.max_seconds, calibration=calibration, selection=selection,
         experimental_zones=args.experimental_zones, include_positions=not args.no_positions,
@@ -147,6 +148,7 @@ def build_parser() -> argparse.ArgumentParser:
     an.add_argument("--detector", choices=["motion", "yolo"], default="motion")
     an.add_argument("--yolo-weights", help="Local YOLO weights file (detector=yolo)")
     an.add_argument("--court-weights", help="Local 14-keypoint YOLO court pose weights for automatic calibration")
+    an.add_argument("--ball-weights", help="Local YOLO weights with a pickleball/ball class for observed ball boxes")
     an.add_argument("--target-fps", type=float, default=10.0, help="Analysis sample rate (default 10)")
     an.add_argument("--max-seconds", type=float, help="Stop after this many seconds (reported in coverage)")
     an.add_argument("--min-tracked-seconds", type=float, default=10.0)

@@ -1,5 +1,36 @@
 {
   "$defs": {
+    "BallSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "time_seconds": {
+          "title": "Time Seconds",
+          "type": "number"
+        },
+        "bbox": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Bbox",
+          "type": "array"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "time_seconds",
+        "bbox",
+        "confidence"
+      ],
+      "title": "BallSnapshot",
+      "type": "object"
+    },
     "CalibrationSummary": {
       "additionalProperties": false,
       "properties": {
@@ -169,6 +200,11 @@
         },
         "frames_with_detections": {
           "title": "Frames With Detections",
+          "type": "integer"
+        },
+        "frames_with_ball_detections": {
+          "default": 0,
+          "title": "Frames With Ball Detections",
           "type": "integer"
         }
       },
@@ -484,6 +520,17 @@
         "detector": {
           "$ref": "#/$defs/DetectorInfo"
         },
+        "ball_detector": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DetectorInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "source": {
           "$ref": "#/$defs/SourceInfo"
         }
@@ -772,6 +819,13 @@
         "$ref": "#/$defs/PositionSnapshot"
       },
       "title": "Player Positions",
+      "type": "array"
+    },
+    "ball_positions": {
+      "items": {
+        "$ref": "#/$defs/BallSnapshot"
+      },
+      "title": "Ball Positions",
       "type": "array"
     },
     "metrics": {

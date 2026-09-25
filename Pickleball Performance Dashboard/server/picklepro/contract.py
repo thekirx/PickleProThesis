@@ -54,6 +54,7 @@ class Provenance(_Model):
     pipeline_version: str
     generated_at: str
     detector: DetectorInfo
+    ball_detector: Optional[DetectorInfo] = None
     source: SourceInfo
 
 
@@ -82,6 +83,7 @@ class Coverage(_Model):
     )
     fraction_of_video_analyzed: Optional[float] = None
     frames_with_detections: int
+    frames_with_ball_detections: int = 0
 
 
 class CalibrationSummary(_Model):
@@ -118,6 +120,12 @@ class PlayerBox(_Model):
 class PositionSnapshot(_Model):
     time_seconds: float
     players: List[PlayerBox]
+
+
+class BallSnapshot(_Model):
+    time_seconds: float
+    bbox: List[int] = Field(min_length=4, max_length=4)
+    confidence: float = Field(ge=0, le=1)
 
 
 class Metric(_Model):
@@ -171,6 +179,7 @@ class AnalysisResultV1(_Model):
     player_selection: Optional[PlayerSelectionSummary] = None
     tracks: List[TrackSummary]
     player_positions: List[PositionSnapshot]
+    ball_positions: List[BallSnapshot] = Field(default_factory=list)
     metrics: Metrics
     warnings: List[str]
 
@@ -188,7 +197,7 @@ RALLY_NOT_COMPUTED = (
     "Rally segmentation is not implemented or validated. All metrics are whole-clip metrics."
 )
 SHOTS_NOT_COMPUTED = (
-    "Shot classification requires ball tracking and a validated classifier; neither exists in this pipeline yet."
+    "Shot classification requires validated ball trajectories and a shot classifier; neither exists in this pipeline yet."
 )
 
 

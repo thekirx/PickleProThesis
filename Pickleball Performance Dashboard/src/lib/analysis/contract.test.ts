@@ -40,6 +40,9 @@ describe("parseAnalysisResult", () => {
     const measuredWithoutValue = structuredClone(testFixture) as Json;
     measuredWithoutValue.metrics.court_heatmap.value = null;
     expect(() => parseAnalysisResult(measuredWithoutValue)).toThrow(/measured without a value/);
+    const badBall = structuredClone(testFixture) as Json;
+    badBall.ball_positions = [{ time_seconds: 1, bbox: [1, 2], confidence: 0.8 }];
+    expect(() => parseAnalysisResult(badBall)).toThrow(/invalid ball box/);
     // The legacy /analyze/video payload is not a v1 result.
     expect(() => parseAnalysisResult({ duration_seconds: 6, frame_count: 180, heatmap: [], message: "Analysis complete" }))
       .toThrow(ContractError);

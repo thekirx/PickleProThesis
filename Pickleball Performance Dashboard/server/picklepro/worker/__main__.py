@@ -44,6 +44,7 @@ def main(argv=None) -> int:
     p.add_argument("--detector", choices=["motion", "yolo"], default=os.getenv("PICKLEPRO_DETECTOR", "motion"))
     p.add_argument("--yolo-weights", default=os.getenv("PICKLEPRO_YOLO_WEIGHTS"))
     p.add_argument("--court-weights", default=os.getenv("PICKLEPRO_COURT_WEIGHTS"))
+    p.add_argument("--ball-weights", default=os.getenv("PICKLEPRO_BALL_WEIGHTS"))
     args = p.parse_args(argv)
 
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -56,7 +57,8 @@ def main(argv=None) -> int:
         return 2
     cfg = WorkerConfig(worker_id=f"{socket.gethostname()}-{uuid.uuid4().hex[:8]}", mode=args.mode,
                        lease_seconds=args.lease_seconds, detector=args.detector,
-                       yolo_weights=args.yolo_weights, court_weights=args.court_weights)
+                       yolo_weights=args.yolo_weights, court_weights=args.court_weights,
+                       ball_weights=args.ball_weights)
     log.info("worker %s starting (mode=%s, detector=%s)", cfg.worker_id, cfg.mode, cfg.detector)
     if cfg.mode == "test_fixture":
         log.warning("TEST FIXTURE MODE: results are canned test data, not analysis of uploaded videos.")

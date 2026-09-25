@@ -9,10 +9,12 @@ from typing import Callable, Dict, List, Optional
 
 from . import PIPELINE_VERSION
 from .auto_court import detect_court
+from .ball_detection import BallDetector
 from .contract import (
     RALLY_NOT_COMPUTED,
     SHOTS_NOT_COMPUTED,
     AnalysisResultV1,
+    BallSnapshot,
     CalibrationSummary,
     CourtHeatmapMetric,
     Coverage,
@@ -46,6 +48,7 @@ class AnalysisOptions:
     detector: str = "motion"
     yolo_weights: Optional[str] = None
     court_weights: Optional[str] = None
+    ball_weights: Optional[str] = None
     target_fps: float = 10.0
     max_seconds: Optional[float] = None
     calibration: Optional[CourtCalibration] = None
@@ -85,6 +88,7 @@ def analyze_video(path: str | Path, options: AnalysisOptions | None = None,
         calibration = calibration.scaled_to(props.width, props.height)
 
     tracker = PlayerTracker(detector=opts.detector, yolo_weights=opts.yolo_weights)
+    ball_detector = BallDetector(opts.ball_weights) if opts.ball_weights else None
     if not tracker.confidence_is_model_score:
         warnings.append(
             "Motion-based detection finds moving objects, not specifically people: stationary players can be "
@@ -95,6 +99,7 @@ def analyze_video(path: str | Path, options: AnalysisOptions | None = None,
     per_frame: List[List[dict]] = []
     times: List[float] = []
     snapshots: List[PositionSnapshot] = []
+    ball_snapshots: List[BallSnapshot] = []
     tracks: Dict[int, List[float]] = {}  # id -> [first, last, count]
     frames_with_detections = 0
     expected = props.container_duration_s
@@ -103,6 +108,10 @@ def analyze_video(path: str | Path, options: AnalysisOptions | None = None,
         if index % stride:
             continue
         detections = tracker.update(frame)
+        if ball_detector is not None:
+            ball = ball_detector.detect(frame)
+            if ball is not None:
+                ball_snapshots.append(BallSnapshot(time_seconds=round(ts, 3), **ball))
         per_frame.append(detections)
         times.append(ts)
         if detections:
@@ -138,6 +147,8 @@ def analyze_video(path: str | Path, options: AnalysisOptions | None = None,
         warnings.append(stopped_early)
     if stats.decode_failures:
         warnings.append(f"{stats.decode_failures} frame(s) could not be decoded and were skipped.")
+    if ball_detector is not None and not ball_snapshots:
+        warnings.append("The ball model found no pickleball in the sampled frames; no ball positions are shown.")
 
     coverage = Coverage(
         analyzed_start_s=round(start, 3),
@@ -150,6 +161,7 @@ def analyze_video(path: str | Path, options: AnalysisOptions | None = None,
         stopped_early_reason=stopped_early,
         fraction_of_video_analyzed=round(min(1.0, analyzed_duration / expected), 4) if expected else None,
         frames_with_detections=frames_with_detections,
+        frames_with_ball_detections=len(ball_snapshots),
     )
 
     heatmap_metric, zone_metric, selection_summary, calib_summary = _court_metrics(
@@ -177,6 +189,8 @@ def analyze_video(path: str | Path, options: AnalysisOptions | None = None,
             generated_at=utc_now_iso(),
             detector=DetectorInfo(name=tracker.detector_name,
                                   confidence_is_model_score=tracker.confidence_is_model_score),
+            ball_detector=DetectorInfo(name="ultralytics-yolo-ball", confidence_is_model_score=True)
+            if ball_detector is not None else None,
             source=SourceInfo(filename=opts.source_filename or Path(path).name,
                               sha256=sha256_of(path) if opts.compute_sha256 else None),
         ),
@@ -191,6 +205,7 @@ def analyze_video(path: str | Path, options: AnalysisOptions | None = None,
         tracks=[TrackSummary(track_id=k, first_seen_s=round(v[0], 3), last_seen_s=round(v[1], 3),
                              observed_frames=int(v[2])) for k, v in sorted(tracks.items())],
         player_positions=snapshots,
+        ball_positions=ball_snapshots,
         metrics=Metrics(
             court_heatmap=heatmap_metric,
             zone_occupancy=zone_metric,

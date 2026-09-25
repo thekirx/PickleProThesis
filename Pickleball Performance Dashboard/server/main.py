@@ -102,6 +102,7 @@ def analyze_video_endpoint(
             max_seconds=min(max_seconds, MAX_SECONDS_LIMIT), target_fps=target_fps,
             calibration=calib, selection=selection, source_filename=file.filename,
             court_weights=os.getenv("PICKLEPRO_COURT_WEIGHTS"),
+            ball_weights=os.getenv("PICKLEPRO_BALL_WEIGHTS"),
         ))
     except VideoOpenError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
