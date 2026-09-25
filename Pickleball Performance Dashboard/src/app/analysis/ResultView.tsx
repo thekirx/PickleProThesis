@@ -6,6 +6,7 @@ import {
 import { BLUE_SKY, BORDER, NEON, ORANGE, ORANGE_L, ROSE, VIOLET, WHITE, WHITE_DIM, WHITE_SUB } from "../theme";
 import { Card, Notice, Pill, WidgetHeader } from "../shell/primitives";
 import { CourtDwellHeatmap } from "./CourtDwellHeatmap";
+import { CoachingPanel } from "./CoachingPanel";
 import { VideoOverlayPlayer } from "./VideoOverlayPlayer";
 
 const STATUS_COLORS: Record<MetricStatus, string> = {
@@ -77,6 +78,8 @@ export function ResultView({ result, videoUrl }: { result: AnalysisResultV1; vid
           </ul>
         )}
       </Card>
+
+      <CoachingPanel result={result} />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="space-y-4">
