@@ -18,7 +18,7 @@ describe("ResultView", () => {
     const measured = { ...structuredClone(testFixture), data_origin: "measured" };
     render(<ResultView result={parseAnalysisResult(measured)} videoUrl={null} />);
     expect(screen.getByText("MEASURED FROM THIS VIDEO")).toBeTruthy();
-    expect(screen.getByText("0.2.0-dev")).toBeTruthy();
+    expect(screen.getByText(testFixture.provenance.pipeline_version)).toBeTruthy();
     expect(screen.getByText("Share of video analyzed")).toBeTruthy();
     expect(screen.getByText("not available")).toBeTruthy(); // motion detector: no confidence
     expect(screen.getAllByText("Accuracy not yet evaluated").length).toBeGreaterThan(0);

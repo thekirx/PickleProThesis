@@ -53,6 +53,12 @@ def test_measured_mode_without_calibration_completes_as_insufficient(synthetic_c
     assert store.row("job-1").result["status"] == "insufficient_data"
 
 
+def test_worker_defaults_to_near_player_and_passes_court_model():
+    opts = runner.options_from_params({}, WorkerConfig(worker_id="w1", court_weights="court.pt"), "match.mp4")
+    assert opts.selection.method == "court_half" and opts.selection.court_half == "near"
+    assert opts.court_weights == "court.pt"
+
+
 def test_missing_video_fails_without_retry():
     store = InMemoryJobStore()
     store.add_job(_job())  # no bytes in storage

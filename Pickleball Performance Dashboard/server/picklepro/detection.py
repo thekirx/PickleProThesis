@@ -3,7 +3,8 @@
 Two detectors are available:
 
 * ``motion`` (default, always available): OpenCV MOG2 background subtraction
-  plus IoU track association. It finds *moving blobs*, not people, and has no
+  plus box/foot-point association across brief missed detections. It finds
+  *moving blobs*, not people, and has no
   confidence score, so detections report ``confidence=None``. It assumes a
   fixed camera.
 * ``yolo`` (optional): Ultralytics YOLOv8 person detection with its built-in
@@ -60,6 +61,7 @@ class PlayerTracker:
         self.min_area_fraction = min_area_fraction
         self.next_id = 1
         self.active_tracks: Dict[int, List[int]] = {}  # { track_id: [x1, y1, x2, y2] }
+        self.missed_frames: Dict[int, int] = {}
         # MOG2 is robust to shadows; shadows are marked 127 and removed by thresholding below.
         self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=500, varThreshold=16, detectShadows=True)
 
@@ -118,28 +120,57 @@ class PlayerTracker:
                 if h > w * 0.8:
                     current_detections.append([x, y, x + w, y + h])
 
-        new_active_tracks: Dict[int, List[int]] = {}
+        ids = associate_boxes(current_detections, self.active_tracks, self.missed_frames)
+        matched = {tid for tid in ids if tid is not None}
+        survivors = {
+            tid: box for tid, box in self.active_tracks.items()
+            if tid not in matched and self.missed_frames.get(tid, 0) < 2
+        }
+        next_misses = {tid: self.missed_frames.get(tid, 0) + 1 for tid in survivors}
         tracked_output = []
-        for bbox in current_detections:
-            best_match_id = None
-            best_iou = 0.3  # Minimum IoU threshold to consider it the same object
-            for track_id, prev_bbox in self.active_tracks.items():
-                iou = calculate_iou(bbox, prev_bbox)
-                if iou > best_iou:
-                    best_iou = iou
-                    best_match_id = track_id
-
-            if best_match_id is not None:
-                # Remove matched ID from active tracks so it isn't matched twice
-                del self.active_tracks[best_match_id]
-            else:
-                best_match_id = self.next_id
+        for bbox, tid in zip(current_detections, ids):
+            if tid is None:
+                tid = self.next_id
                 self.next_id += 1
-            new_active_tracks[best_match_id] = bbox
-            tracked_output.append({"track_id": best_match_id, "bbox": bbox, "confidence": None})
-
-        self.active_tracks = new_active_tracks
+            survivors[tid] = bbox
+            next_misses[tid] = 0
+            tracked_output.append({"track_id": tid, "bbox": bbox, "confidence": None})
+        self.active_tracks = survivors
+        self.missed_frames = next_misses
         return tracked_output
+
+
+def associate_boxes(boxes: List[List[int]], previous: Dict[int, List[int]],
+                    missed: Dict[int, int]) -> List[Optional[int]]:
+    """Assign each observed box once; retain IDs after a short detection gap.
+
+    Only observed boxes are returned. A remembered track never creates a fake
+    position or contributes time to a heatmap.
+    """
+    candidates = []
+    for index, box in enumerate(boxes):
+        foot_x = (box[0] + box[2]) / 2
+        foot_y = box[3]
+        area = max(1, (box[2] - box[0]) * (box[3] - box[1]))
+        for tid, old in previous.items():
+            overlap = calculate_iou(box, old)
+            old_area = max(1, (old[2] - old[0]) * (old[3] - old[1]))
+            distance = float(np.hypot(foot_x - (old[0] + old[2]) / 2, foot_y - old[3]))
+            limit = max(18.0, 0.75 * max(box[3] - box[1], old[3] - old[1]))
+            if overlap >= 0.2:
+                score = 2.0 + overlap
+            elif 0.5 <= area / old_area <= 2.0 and distance <= limit:
+                score = 1.0 - distance / limit - 0.1 * missed.get(tid, 0)
+            else:
+                continue
+            candidates.append((score, index, tid))
+    matches: List[Optional[int]] = [None] * len(boxes)
+    used = set()
+    for _score, index, tid in sorted(candidates, reverse=True):
+        if matches[index] is None and tid not in used:
+            matches[index] = tid
+            used.add(tid)
+    return matches
 
 
 def _load_yolo(weights: Optional[str]):

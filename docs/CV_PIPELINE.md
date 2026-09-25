@@ -2,13 +2,26 @@
 
 ## What runs today
 
-`server/picklepro/` reads a video sequentially, samples frames at a requested rate, detects moving objects, tracks detections, and records bounding boxes for replay. Motion detection is the default and does **not** establish that an object is a person. It has no model confidence score. YOLO is optional, requires `server/requirements-yolo.txt` and local weights, and is never downloaded silently.
+`server/picklepro/` reads a video sequentially, samples frames at a requested rate, detects moving objects, tracks detections, and records bounding boxes for replay. Motion detection is the default and does **not** establish that an object is a person. It has no model confidence score. Its tracker can reconnect a box after up to two missed samples, but missing samples never create positions or heatmap time. YOLO person detection is optional, requires `server/requirements-yolo.txt` and local weights, and is never downloaded silently.
 
-Manual calibration maps image pixels on the **court ground plane** to metres. A detection's bottom-center box point approximates its foot location. The pipeline selects one player by track ID or by a single detected player on the near/far half. Frames with ambiguous half selection are excluded. A court heatmap sums the time represented by each usable sampled frame; it is a whole-clip dwell-time map, not rally analysis.
+An optional 14-keypoint court pose model can calibrate the court from the video's opening five seconds. Set `PICKLEPRO_COURT_WEIGHTS` for the worker, or pass `--court-weights` to the CLI. This adapter uses the landmark ordering documented by [pickleball-analysis](https://github.com/sumanblack666/pickleball-analysis); weights are supplied separately and are never downloaded or committed here. It needs the optional `server/requirements-yolo.txt` dependencies. At least six confident, well-spread keypoints and a good robust fit are required. If none is found, the result says `insufficient_data` and manual calibration remains available.
+
+Calibration maps image pixels on the **court ground plane** to metres. A detection's bottom-center box point approximates its foot location. The worker selects the single near-side player by default; the UI can choose the far side or a track ID. Frames with ambiguous half selection are excluded. A court heatmap sums the time represented by each usable sampled frame; it is a whole-clip dwell-time map, not rally analysis.
 
 The heatmap needs calibration, player selection, at least 10 tracked seconds, and at least 25% of analyzed time tracked. Without enough evidence the metric and overall result say `insufficient_data`. Zone occupancy is experimental and off by default. Rally segmentation and shot classification are always `not_computed` in this version.
 
-## Calibrate a permitted fixed-camera video
+## Automatic calibration with compatible local weights
+
+From `Pickleball Performance Dashboard/server/`, install the optional dependencies and point to a reviewed 14-keypoint court model:
+
+```sh
+.venv/bin/python -m pip install -r requirements-yolo.txt
+.venv/bin/python -m picklepro.cli analyze /path/to/match.mp4 --court-weights /path/to/court_best.pt --court-half near --out /path/to/result.json
+```
+
+For hosted uploads, set `PICKLEPRO_COURT_WEIGHTS=/path/to/court_best.pt` in `server/.env` and run the measured worker. Leave out the manual calibration input in the app. The model must use the same 14-point ordering; arbitrary court pose models are not compatible. We have tested the mapping with synthetic keypoints, not its accuracy on real matches. Review model-weight provenance and Ultralytics licensing before deployment.
+
+## Manual calibration fallback for a permitted fixed-camera video
 
 Run from `Pickleball Performance Dashboard/server/`:
 
@@ -48,7 +61,7 @@ Use `--track-id N` instead of `--court-half near` when a player can be followed 
 - `coverage` records analyzed start/end, sample stride, decoded/analyzed frames, detection count, and the fraction of the reported video duration covered. Container duration and frame rate can themselves be approximate.
 - Each `metrics` entry has a status and a validation level. `measured` means computed from observed frames; it does not mean scientifically validated. `synthetic_only` and `not_evaluated` must be presented as such.
 - `player_positions` contain timestamped pixel boxes for replay. Box visibility depends on detections at that playback time; empty stretches have no boxes.
-- `calibration.reprojection_rmse_m` measures fit to clicked landmarks, not real-world tracking accuracy. A poor fit is warned about but does not automatically suppress a heatmap.
+- `calibration.method` says whether landmarks came from the model or manual input. `calibration.reprojection_rmse_m` measures fit to those landmarks, not real-world tracking accuracy. Automatic calibration rejects a poor fit; a poor manual fit is warned about but does not automatically suppress a heatmap.
 
 The synthetic fixture previously produced roughly 3.2 cm median and 9.7 cm 90th-percentile foot-position error under ideal, known geometry. This is a development check, **not** an estimate of accuracy on real matches. Real-footage evaluation still needs permitted, labeled clips with varying lighting, occlusion, court views, players, and camera stability.
 

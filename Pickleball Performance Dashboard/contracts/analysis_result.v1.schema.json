@@ -4,7 +4,10 @@
       "additionalProperties": false,
       "properties": {
         "method": {
-          "const": "manual_landmarks",
+          "enum": [
+            "manual_landmarks",
+            "auto_model_landmarks"
+          ],
           "title": "Method",
           "type": "string"
         },

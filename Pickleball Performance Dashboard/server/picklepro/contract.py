@@ -85,7 +85,7 @@ class Coverage(_Model):
 
 
 class CalibrationSummary(_Model):
-    method: Literal["manual_landmarks"]
+    method: Literal["manual_landmarks", "auto_model_landmarks"]
     court_model: str
     landmarks_used: List[str]
     reprojection_rmse_px: float

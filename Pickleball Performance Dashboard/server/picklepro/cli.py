@@ -70,7 +70,8 @@ def _cmd_analyze(args) -> int:
         selection = Selection("court_half", court_half=args.court_half)
 
     opts = AnalysisOptions(
-        detector=args.detector, yolo_weights=args.yolo_weights, target_fps=args.target_fps,
+        detector=args.detector, yolo_weights=args.yolo_weights, court_weights=args.court_weights,
+        target_fps=args.target_fps,
         max_seconds=args.max_seconds, calibration=calibration, selection=selection,
         experimental_zones=args.experimental_zones, include_positions=not args.no_positions,
         min_tracked_seconds=args.min_tracked_seconds, min_tracked_fraction=args.min_tracked_fraction,
@@ -145,6 +146,7 @@ def build_parser() -> argparse.ArgumentParser:
                      help="Analyze the single player on this half (frames with >1 candidate are excluded)")
     an.add_argument("--detector", choices=["motion", "yolo"], default="motion")
     an.add_argument("--yolo-weights", help="Local YOLO weights file (detector=yolo)")
+    an.add_argument("--court-weights", help="Local 14-keypoint YOLO court pose weights for automatic calibration")
     an.add_argument("--target-fps", type=float, default=10.0, help="Analysis sample rate (default 10)")
     an.add_argument("--max-seconds", type=float, help="Stop after this many seconds (reported in coverage)")
     an.add_argument("--min-tracked-seconds", type=float, default=10.0)

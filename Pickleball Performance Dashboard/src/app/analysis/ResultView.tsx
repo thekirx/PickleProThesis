@@ -145,7 +145,7 @@ export function ResultView({ result, videoUrl }: { result: AnalysisResultV1; vid
             <Row k="Frames with detections" v={c.frames_with_detections} />
             {c.decode_failures > 0 && <Row k="Undecodable frames" v={c.decode_failures} />}
             <Row k="Calibration" v={result.calibration
-              ? `${result.calibration.landmarks_used.length} landmarks · ${result.calibration.quality} (${result.calibration.reprojection_rmse_m.toFixed(2)} m)`
+              ? `${result.calibration.method === "auto_model_landmarks" ? "automatic" : "manual"} · ${result.calibration.landmarks_used.length} landmarks · ${result.calibration.quality} (${result.calibration.reprojection_rmse_m.toFixed(2)} m)`
               : "none"} />
             <Row k="Player selection" v={sel
               ? `${sel.method === "court_half" ? `${sel.court_half} half` : `track #${sel.track_id}`} · tracked ${pct(sel.tracked_fraction)}`

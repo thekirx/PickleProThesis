@@ -76,7 +76,7 @@ export type AnalysisResultV1 = {
     frames_with_detections: number;
   };
   calibration: {
-    method: "manual_landmarks";
+    method: "manual_landmarks" | "auto_model_landmarks";
     court_model: string;
     landmarks_used: string[];
     reprojection_rmse_px: number;
@@ -138,6 +138,10 @@ export function parseAnalysisResult(input: unknown): AnalysisResultV1 {
   if (!isObj(cov)) throw new ContractError("coverage: expected an object");
   num(cov.analyzed_duration_s, "coverage.analyzed_duration_s");
   num(cov.frames_analyzed, "coverage.frames_analyzed");
+  if (input.calibration !== null) {
+    if (!isObj(input.calibration)) throw new ContractError("calibration: expected an object or null");
+    oneOf(input.calibration.method, ["manual_landmarks", "auto_model_landmarks"] as const, "calibration.method");
+  }
   if (!isObj(input.metrics)) throw new ContractError("metrics: expected an object");
   for (const key of METRIC_KEYS) {
     const m = (input.metrics as Record<string, unknown>)[key];

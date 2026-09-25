@@ -34,12 +34,12 @@ export type AnalysisParams = {
 };
 
 /**
- * Optional analysis inputs: player selection and a manual court calibration
- * (JSON from the CLI workflow in docs/CV_PIPELINE.md). Without calibration the
- * pipeline still runs, and reports court metrics as insufficient data.
+ * The worker selects the near player by default and detects court landmarks
+ * when an optional court model is configured. Manual calibration remains an
+ * advanced fallback for videos where the model cannot locate the court.
  */
 export function AnalysisParamsForm({ onChange }: { onChange: (params: AnalysisParams | null, error: string | null) => void }) {
-  const [mode, setMode] = useState<"none" | "near" | "far" | "track">("none");
+  const [mode, setMode] = useState<"none" | "near" | "far" | "track">("near");
   const [trackId, setTrackId] = useState("");
   const [calibration, setCalibration] = useState("");
   const [zones, setZones] = useState(false);
@@ -91,10 +91,16 @@ export function AnalysisParamsForm({ onChange }: { onChange: (params: AnalysisPa
         </label>
       </div>
       <div>
-        <label className={labelClass} style={labelStyle} htmlFor="calibration-json">Court calibration JSON (optional)</label>
-        <textarea id="calibration-json" rows={4} value={calibration} placeholder='{"image_width": 1920, "image_height": 1080, "points": [...]}'
-          className="w-full rounded-xl px-3 py-2 text-xs font-mono" style={{ ...fieldStyle, border: `1px solid ${BORDER}` }}
-          onChange={(e) => { setCalibration(e.target.value); emit({ calibration: e.target.value }); }} />
+        <p className="text-xs" style={{ color: WHITE_DIM }}>
+          Court mapping runs automatically when a court model is configured on the analysis worker.
+        </p>
+        <details className="mt-2">
+          <summary className="text-xs cursor-pointer" style={{ color: BLUE_SKY }}>Manual court calibration (advanced fallback)</summary>
+          <label className={labelClass} style={labelStyle} htmlFor="calibration-json">Court calibration JSON</label>
+          <textarea id="calibration-json" rows={4} value={calibration} placeholder='{"image_width": 1920, "image_height": 1080, "points": [...]}'
+            className="w-full rounded-xl px-3 py-2 text-xs font-mono" style={{ ...fieldStyle, border: `1px solid ${BORDER}` }}
+            onChange={(e) => { setCalibration(e.target.value); emit({ calibration: e.target.value }); }} />
+        </details>
       </div>
     </div>
   );

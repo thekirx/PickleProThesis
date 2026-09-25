@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
 from . import PIPELINE_VERSION
+from .auto_court import detect_court
 from .contract import (
     RALLY_NOT_COMPUTED,
     SHOTS_NOT_COMPUTED,
@@ -44,6 +45,7 @@ ProgressFn = Callable[[float], None]
 class AnalysisOptions:
     detector: str = "motion"
     yolo_weights: Optional[str] = None
+    court_weights: Optional[str] = None
     target_fps: float = 10.0
     max_seconds: Optional[float] = None
     calibration: Optional[CourtCalibration] = None
@@ -67,6 +69,14 @@ def analyze_video(path: str | Path, options: AnalysisOptions | None = None,
         warnings.append("The video did not report a frame rate; 30 fps was assumed for timing.")
 
     calibration = opts.calibration
+    calibration_method = "manual_landmarks"
+    if calibration is None and opts.court_weights:
+        scan_seconds = min(5.0, opts.max_seconds) if opts.max_seconds is not None else 5.0
+        calibration = detect_court(path, props, opts.court_weights, seconds_to_scan=scan_seconds)
+        if calibration is None:
+            warnings.append("The court model could not find enough reliable landmarks in the opening video frames; provide manual calibration or check the camera view.")
+        else:
+            calibration_method = "auto_model_landmarks"
     if calibration is not None and calibration.image_size != (props.width, props.height):
         warnings.append(
             f"Calibration was made on a {calibration.image_size[0]}x{calibration.image_size[1]} image and "
@@ -143,7 +153,7 @@ def analyze_video(path: str | Path, options: AnalysisOptions | None = None,
     )
 
     heatmap_metric, zone_metric, selection_summary, calib_summary = _court_metrics(
-        per_frame, frame_interval_s, analyzed_duration, calibration, opts, warnings
+        per_frame, frame_interval_s, analyzed_duration, calibration, calibration_method, opts, warnings
     )
 
     if frames_analyzed == 0:
@@ -191,7 +201,8 @@ def analyze_video(path: str | Path, options: AnalysisOptions | None = None,
     )
 
 
-def _court_metrics(per_frame, frame_interval_s, analyzed_duration, calibration, opts: AnalysisOptions, warnings):
+def _court_metrics(per_frame, frame_interval_s, analyzed_duration, calibration, calibration_method,
+                   opts: AnalysisOptions, warnings):
     zones_off = ZoneOccupancyMetric(
         status="not_computed",
         reason="Zone occupancy is experimental and disabled by default (enable with experimental_zones).",
@@ -203,7 +214,7 @@ def _court_metrics(per_frame, frame_interval_s, analyzed_duration, calibration, 
                 zones_off, None, None)
 
     calib_summary = CalibrationSummary(
-        method="manual_landmarks", court_model=COURT_MODEL, landmarks_used=calibration.landmarks_used,
+        method=calibration_method, court_model=COURT_MODEL, landmarks_used=calibration.landmarks_used,
         reprojection_rmse_px=calibration.reprojection_rmse_px,
         reprojection_rmse_m=calibration.reprojection_rmse_m, quality=calibration.quality,
     )

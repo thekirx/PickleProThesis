@@ -75,6 +75,8 @@ def analyze_video_endpoint(
         selection = Selection("track_id", track_id=track_id)
     elif court_half:
         selection = Selection("court_half", court_half=court_half)
+    else:
+        selection = Selection("court_half", court_half="near")
 
     suffix = Path(file.filename or "upload.mp4").suffix or ".mp4"
     # Safely write the file in chunks to prevent Memory (RAM) crashes
@@ -99,6 +101,7 @@ def analyze_video_endpoint(
         return analyze_video(tmp_path, AnalysisOptions(
             max_seconds=min(max_seconds, MAX_SECONDS_LIMIT), target_fps=target_fps,
             calibration=calib, selection=selection, source_filename=file.filename,
+            court_weights=os.getenv("PICKLEPRO_COURT_WEIGHTS"),
         ))
     except VideoOpenError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
