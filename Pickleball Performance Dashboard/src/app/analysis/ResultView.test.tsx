@@ -22,6 +22,7 @@ describe("ResultView", () => {
     expect(screen.getByText("MEASURED FROM THIS VIDEO")).toBeTruthy();
     expect(screen.getByText(testFixture.provenance.pipeline_version)).toBeTruthy();
     expect(screen.getByText("Share of video analyzed")).toBeTruthy();
+    expect(screen.getByText("Player track IDs")).toBeTruthy();
     expect(screen.getByText("not available")).toBeTruthy(); // motion detector: no confidence
     expect(screen.getAllByText("Accuracy not yet evaluated").length).toBeGreaterThan(0);
     expect(screen.getAllByText("NOT COMPUTED").length).toBe(2); // rallies and shots

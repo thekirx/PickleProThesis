@@ -155,6 +155,9 @@ export function ResultView({ result, videoUrl }: { result: AnalysisResultV1; vid
             <Row k="Player selection" v={sel
               ? `${sel.method === "court_half" ? `${sel.court_half} half` : `track #${sel.track_id}`} · tracked ${pct(sel.tracked_fraction)}`
               : "none"} />
+            {result.tracks.length > 0 && <Row k="Player track IDs" v={result.tracks
+              .slice().sort((a, b) => b.observed_frames - a.observed_frames)
+              .slice(0, 8).map((track) => `#${track.track_id}`).join(", ")} />}
             <Row k="Generated" v={new Date(result.provenance.generated_at).toLocaleString()} />
             {result.provenance.source.filename && <Row k="Source file" v={result.provenance.source.filename} />}
           </Card>

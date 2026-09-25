@@ -47,3 +47,21 @@ hand-labelled real clips from the intended camera angle. Record court
 landmark error, player and ball detection precision/recall, ID switches,
 heatmap coverage, failures, and processing time. Keep shot classification and
 rally segmentation `not_computed` until their own evaluation exists.
+
+## Initial local smoke test
+
+On 2026-09-26, the pinned optional runtime in `requirements-yolo.txt` loaded
+both candidate models. The source repository's own `data/test.mp4` is a
+640×360 doubles broadcast. On its first 60 seconds sampled at 5 frames per
+second, automatic court calibration was good, player boxes appeared in 297 of
+300 analyzed frames, and ball boxes appeared in 94. The near-half selection
+was ambiguous in 176 frames because two players occupied that half. It
+produced 21.2 seconds of selected-player positions and a heatmap, but the
+feedback panel now withholds personalized coaching because most frames did
+not identify one player clearly. A 20-second sample had only 6.4 seconds of
+selected-player positions and correctly returned insufficient data.
+
+This is a pipeline smoke test on the model author's clip, not an independent
+accuracy measurement. Doubles need a specific, stable player selection;
+visible track IDs in the result can be used for re-analysis, but track
+fragmentation must be evaluated before claiming reliable individual feedback.

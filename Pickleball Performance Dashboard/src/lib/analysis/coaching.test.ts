@@ -36,4 +36,10 @@ describe("gameplay feedback", () => {
     if (result.calibration) result.calibration.quality = "poor";
     expect(buildCoachingReport(result).available).toBe(false);
   });
+
+  it("withholds coaching when doubles make the selected player ambiguous", () => {
+    const result = measured();
+    if (result.player_selection) result.player_selection.ambiguous_frames = 60;
+    expect(buildCoachingReport(result).available).toBe(false);
+  });
 });

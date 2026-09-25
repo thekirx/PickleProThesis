@@ -60,8 +60,13 @@ export function buildCoachingReport(result: AnalysisResultV1): CoachingReport {
   if (result.calibration?.quality !== "good") {
     return unavailable("Coaching needs a reliable court calibration. Review the court lines or use a clearer fixed-camera recording.");
   }
+  const selection = result.player_selection;
+  if (!selection || selection.tracked_fraction < 0.5 ||
+      selection.ambiguous_frames > result.coverage.frames_analyzed * 0.2) {
+    return unavailable("Coaching needs one player tracked clearly through most of the analyzed clip. In doubles, choose a specific player track and re-run analysis.");
+  }
   const value = result.metrics.court_heatmap.value;
-  const selectedHalf = result.player_selection?.method === "court_half" ? result.player_selection.court_half ?? null : null;
+  const selectedHalf = selection.method === "court_half" ? selection.court_half ?? null : null;
   const { zones, total } = summarizePositions(value, selectedHalf);
   if (total < 10 || total < value.tracked_time_s * 0.5) {
     return unavailable("Coaching needs at least ten seconds of the selected player clearly mapped inside the court.");
