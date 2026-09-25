@@ -52,8 +52,10 @@ class PlayerTracker:
                  min_area_fraction: float = 0.002):
         self.detector = detector
         self.yolo_model = None
+        self.yolo_person_class_id = None
         if detector == "yolo":
             self.yolo_model = _load_yolo(yolo_weights)
+            self.yolo_person_class_id = person_class_id(getattr(self.yolo_model, "names", {}))
         elif detector != "motion":
             raise ValueError(f"Unknown detector '{detector}'. Use 'motion' or 'yolo'.")
 
@@ -80,8 +82,8 @@ class PlayerTracker:
 
     def _detect_and_track_yolo(self, frame: np.ndarray) -> List[Dict[str, Any]]:
         """Uses Ultralytics YOLOv8 with built-in persist=True tracking."""
-        # classes=[0] filters for 'person' class only
-        results = self.yolo_model.track(frame, persist=True, classes=[0], verbose=False)
+        # Custom pickleball models need not use COCO's class 0 for people.
+        results = self.yolo_model.track(frame, persist=True, classes=[self.yolo_person_class_id], verbose=False)
 
         detections = []
         if results and len(results) > 0 and results[0].boxes:
@@ -171,6 +173,15 @@ def associate_boxes(boxes: List[List[int]], previous: Dict[int, List[int]],
             matches[index] = tid
             used.add(tid)
     return matches
+
+
+def person_class_id(names) -> int:
+    """Find a person class in COCO or custom pickleball model metadata."""
+    items = names.items() if isinstance(names, dict) else enumerate(names if names is not None else [])
+    for class_id, label in items:
+        if str(label).strip().lower() in {"person", "player", "human"}:
+            return int(class_id)
+    raise DetectorUnavailable("YOLO weights must contain a person/player/human class; check the model's class names.")
 
 
 def _load_yolo(weights: Optional[str]):
